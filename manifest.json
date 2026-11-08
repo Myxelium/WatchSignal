@@ -1,0 +1,11 @@
+[
+  {
+    "guid": "79801685-27ac-495f-a917-11298fe58dce",
+    "name": "WatchSignal",
+    "overview": "Shows when the next episode or season airs on the series page.",
+    "description": "Adds one line to the series page with the next episode air date. When that release is the premiere of a season, the line says when the season premieres. Dates come from Sonarr when the show is in your Sonarr library, and from TVMaze otherwise.",
+    "owner": "Myxelium",
+    "category": "General",
+    "versions": []
+  }
+]

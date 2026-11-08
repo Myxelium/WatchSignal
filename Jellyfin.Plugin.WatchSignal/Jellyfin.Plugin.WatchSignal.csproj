@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>Jellyfin.Plugin.WatchSignal</RootNamespace>
+    <AssemblyName>Jellyfin.Plugin.WatchSignal</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!--
+      Jellyfin treats every catalog row with targetAbi <= the server as installable,
+      then picks the highest version. The Jellyfin 12 build must therefore sort above
+      the 10.11 build, or a 12 server would install the net9 assembly.
+    -->
+    <Version Condition="'$(ReleaseVersion)' == '' and '$(TargetFramework)' == 'net9.0'">1.0.0.0</Version>
+    <Version Condition="'$(ReleaseVersion)' == '' and '$(TargetFramework)' == 'net10.0'">1.0.1.0</Version>
+    <Version Condition="'$(ReleaseVersion)' != '' and '$(TargetFramework)' == 'net9.0'">$(ReleaseVersion).0</Version>
+    <Version Condition="'$(ReleaseVersion)' != '' and '$(TargetFramework)' == 'net10.0'">$(ReleaseVersion).1</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <JellyfinVersion>10.11.11</JellyfinVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <JellyfinVersion>12.4.0</JellyfinVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="$(JellyfinVersion)">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Configuration\configPage.html">
+      <LogicalName>Jellyfin.Plugin.WatchSignal.Configuration.configPage.html</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Web\watchsignal.js">
+      <LogicalName>Jellyfin.Plugin.WatchSignal.Web.watchsignal.js</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

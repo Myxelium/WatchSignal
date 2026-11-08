@@ -1,0 +1,10 @@
+bin/
+obj/
+dist/
+.dotnet/
+.dotnet-install.sh
+.inspect/
+TestResults/
+*.user
+.vs/
+.idea/

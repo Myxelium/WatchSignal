@@ -1,0 +1,80 @@
+name: WatchSignal
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths-ignore:
+      - manifest.json
+
+concurrency:
+  group: watchsignal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+      - run: dotnet test Jellyfin.Plugin.WatchSignal.sln -c Release --nologo
+      - run: node tests/formatRelease.test.js
+        env:
+          TZ: UTC
+
+  release:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip release]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+      - name: Pack both Jellyfin builds
+        id: pack
+        run: |
+          version="1.0.${{ github.run_number }}"
+          tag="v${version}"
+          python3 tools/pack.py --release-version "$version" --tag "$tag" --skip-test
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.pack.outputs.tag }}"
+          if gh release view "$tag" --repo Myxelium/WatchSignal >/dev/null 2>&1; then
+            gh release upload "$tag" dist/*.zip --repo Myxelium/WatchSignal --clobber
+          else
+            gh release create "$tag" dist/*.zip \
+              --repo Myxelium/WatchSignal \
+              --title "WatchSignal $tag" \
+              --notes "Catalog update for Jellyfin 10.11 and Jellyfin 12."
+          fi
+      - name: Publish the catalog manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp dist/catalog-versions.json /tmp/catalog-versions.json
+          git checkout -- manifest.json
+          git fetch origin main
+          git merge --no-edit origin/main
+          python3 tools/pack.py --merge-catalog /tmp/catalog-versions.json
+          git add manifest.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Update catalog for ${{ steps.pack.outputs.tag }}"
+          git push origin HEAD:main

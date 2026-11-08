@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>WatchSignal</title>
+</head>
+<body>
+<div id="WatchSignalConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div data-role="content">
+        <div class="content-primary">
+            <h1>WatchSignal</h1>
+            <p>One line on the series page. It says when the next episode airs. When that episode is the premiere of a season, the line says when the season premieres instead.</p>
+            <form id="WatchSignalConfigForm">
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input id="Enabled" type="checkbox" is="emby-checkbox" />
+                        <span>Show the line on series pages</span>
+                    </label>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="Source">Dates from</label>
+                    <select id="Source" is="emby-select">
+                        <option value="Auto">Automatic — Sonarr when the show is in Sonarr, otherwise TVMaze</option>
+                        <option value="Sonarr">Sonarr only</option>
+                        <option value="TvMaze">TVMaze only</option>
+                    </select>
+                    <div class="fieldDescription">TVMaze is a public TV listing and does not need an API key.</div>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">Sonarr address</label>
+                    <input id="SonarrUrl" type="text" is="emby-input" placeholder="http://192.168.1.20:8989" />
+                    <div class="fieldDescription">The same address you open in a browser. A trailing /api is fine.</div>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="SonarrApiKey">Sonarr API key</label>
+                    <input id="SonarrApiKey" type="password" is="emby-input" autocomplete="off" />
+                    <div class="fieldDescription">Sonarr → Settings → General → Security.</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input id="SonarrIgnoreCertificateErrors" type="checkbox" is="emby-checkbox" />
+                        <span>Allow Sonarr’s certificate even when it is not trusted</span>
+                    </label>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="CacheMinutes">Remember a date for (minutes)</label>
+                    <input id="CacheMinutes" type="number" is="emby-input" min="1" max="10080" />
+                </div>
+                <div>
+                    <button is="emby-button" type="button" class="raised button-cancel" id="SonarrTest">
+                        <span>Test Sonarr</span>
+                    </button>
+                </div>
+                <p id="SonarrTestResult"></p>
+                <br />
+                <button is="emby-button" type="submit" class="raised button-submit block">
+                    <span>Save</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    <script>
+        var WatchSignalConfig = {
+            pluginUniqueId: "79801685-27ac-495f-a917-11298fe58dce"
+        };
+
+        function watchSignalValue(id) {
+            return document.querySelector("#" + id);
+        }
+
+        function loadWatchSignalConfig() {
+            Dashboard.showLoadingMsg();
+            ApiClient.getPluginConfiguration(WatchSignalConfig.pluginUniqueId).then(function (config) {
+                watchSignalValue("Enabled").checked = config.Enabled !== false;
+                watchSignalValue("Source").value = config.Source || "Auto";
+                watchSignalValue("SonarrUrl").value = config.SonarrUrl || "";
+                watchSignalValue("SonarrApiKey").value = config.SonarrApiKey || "";
+                watchSignalValue("SonarrIgnoreCertificateErrors").checked = config.SonarrIgnoreCertificateErrors === true;
+                watchSignalValue("CacheMinutes").value = config.CacheMinutes || 360;
+                Dashboard.hideLoadingMsg();
+            });
+        }
+
+        document.querySelector("#WatchSignalConfigPage").addEventListener("pageshow", loadWatchSignalConfig);
+
+        document.querySelector("#WatchSignalConfigForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            Dashboard.showLoadingMsg();
+            ApiClient.getPluginConfiguration(WatchSignalConfig.pluginUniqueId).then(function (config) {
+                config.Enabled = watchSignalValue("Enabled").checked;
+                config.Source = watchSignalValue("Source").value;
+                config.SonarrUrl = watchSignalValue("SonarrUrl").value.trim();
+                config.SonarrApiKey = watchSignalValue("SonarrApiKey").value.trim();
+                config.SonarrIgnoreCertificateErrors = watchSignalValue("SonarrIgnoreCertificateErrors").checked;
+                config.CacheMinutes = parseInt(watchSignalValue("CacheMinutes").value, 10) || 360;
+                ApiClient.updatePluginConfiguration(WatchSignalConfig.pluginUniqueId, config).then(function (result) {
+                    Dashboard.processPluginConfigurationUpdateResult(result);
+                });
+            });
+            return false;
+        });
+
+        document.querySelector("#SonarrTest").addEventListener("click", function () {
+            var result = document.querySelector("#SonarrTestResult");
+            result.textContent = "Contacting Sonarr…";
+            fetch(ApiClient.getUrl("WatchSignal/Sonarr/Test"), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Emby-Token": ApiClient.accessToken()
+                },
+                body: JSON.stringify({
+                    url: watchSignalValue("SonarrUrl").value.trim(),
+                    apiKey: watchSignalValue("SonarrApiKey").value.trim(),
+                    ignoreCertificateErrors: watchSignalValue("SonarrIgnoreCertificateErrors").checked
+                })
+            }).then(function (response) {
+                return response.json().then(function (body) {
+                    return { ok: response.ok, body: body };
+                });
+            }).then(function (payload) {
+                result.textContent = (payload.body && payload.body.message) || (payload.ok ? "Connected." : "Sonarr did not answer.");
+            }).catch(function () {
+                result.textContent = "Could not reach the WatchSignal test on this server.";
+            });
+        });
+    </script>
+</div>
+</body>
+</html>
