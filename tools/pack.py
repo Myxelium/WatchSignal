@@ -81,11 +81,11 @@ def builds(release_version: str | None) -> list[tuple[str, str, str]]:
             raise SystemExit("--release-version must look like 1.2.3")
         return [
             ("net10.0", f"{release_version}.1", "12.0.0.0"),
-            ("net9.0", f"{release_version}.0", "10.11.0.0"),
+            ("net9.0", f"{release_version}.0", "10.11.8.0"),
         ]
     return [
         ("net10.0", "1.0.1.0", "12.0.0.0"),
-        ("net9.0", "1.0.0.0", "10.11.0.0"),
+        ("net9.0", "1.0.0.0", "10.11.8.0"),
     ]
 
 

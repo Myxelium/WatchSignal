@@ -15,7 +15,7 @@ In Jellyfin, open **Dashboard → Plugins → Repositories** and add:
 
 Then open **Catalog**, install **WatchSignal**, and restart Jellyfin. Refresh the web app and open a series. The line sits under the year and runtime.
 
-Jellyfin 10.11 installs the .NET 9 build. Jellyfin 12 installs the .NET 10 build. The catalog lists the one that matches the server.
+Jellyfin 10.11.8 and every later 10.11 release install the .NET 9 build. Jellyfin 12 and later install the .NET 10 build. The catalog lists the one that matches the server.
 
 Optional: **Dashboard → Plugins → WatchSignal**. Leave dates on Automatic, or set the Sonarr address and API key (Sonarr → Settings → General → Security) and use **Test Sonarr**.
 

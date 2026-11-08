@@ -61,7 +61,7 @@ jobs:
             gh release create "$tag" dist/*.zip \
               --repo Myxelium/WatchSignal \
               --title "WatchSignal $tag" \
-              --notes "Catalog update for Jellyfin 10.11 and Jellyfin 12."
+              --notes "Catalog update for Jellyfin 10.11.8 and later, including Jellyfin 12."
           fi
       - name: Publish the catalog manifest
         run: |

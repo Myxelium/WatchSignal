@@ -1,13 +1,14 @@
 name: "WatchSignal"
 guid: "79801685-27ac-495f-a917-11298fe58dce"
-version: "1.0.1.0"
-targetAbi: "12.0.0.0"
-framework: "net10.0"
+version: "1.0.0.0"
+targetAbi: "10.11.8.0"
+framework: "net9.0"
 owner: "Myxelium"
 overview: "Shows when the next episode or season airs on the series page."
 description: >
   Adds one line to the series page with the next episode air date.
   When that release is the premiere of a season, the line says when the season premieres.
+  Supports Jellyfin 10.11.8 and later. Jellyfin 12 uses a separate net10.0 build with targetAbi 12.0.0.0.
 category: "General"
 artifacts:
   - "Jellyfin.Plugin.WatchSignal.dll"
