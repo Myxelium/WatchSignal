@@ -11,9 +11,9 @@ The line uses your Sonarr library when the show is in Sonarr. Otherwise it uses 
 
 In Jellyfin, open **Dashboard → Plugins → Repositories** and add:
 
-`https://raw.githubusercontent.com/Myxelium/WatchSignal/main/manifest.json`
+`https://github.com/Myxelium/WatchSignal/releases/latest/download/manifest.json`
 
-Then open **Catalog**, install **WatchSignal**, and restart Jellyfin. Refresh the web app and open a series. The line sits under the year and runtime.
+Then open **Catalog**, install **WatchSignal**, and restart Jellyfin. Refresh the web app and open a series. The line sits under the year and runtime. If the repository URL is still the `raw.githubusercontent.com` copy, replace it with the link above. GitHub caches that raw file; the latest-release file updates with each release.
 
 Jellyfin 10.11.8 and every later 10.11 release install the .NET 9 build. Jellyfin 12 and later install the .NET 10 build. The catalog lists the one that matches the server.
 
@@ -21,11 +21,9 @@ Optional: **Dashboard → Plugins → WatchSignal**. Leave dates on Automatic, o
 
 The line is part of the web client. Jellyfin's other apps do not load it.
 
-The catalog is empty until the first push to `main` finishes the release workflow.
-
 ## Releases
 
-Every push to `main` is tested, then published as a GitHub release. The workflow writes the zip checksums back into `manifest.json`, which is the repository URL above. A commit that only changes `manifest.json` does not start another release. Put `[skip release]` in a commit message to test without publishing.
+Every push to `main` is tested, then published as a GitHub release. The workflow writes the zip checksums into `manifest.json` and uploads that file on the release. The repository URL above always points at the latest release. A commit that only changes `manifest.json` does not start another release. Put `[skip release]` in a commit message to test without publishing.
 
 Pull requests are tested and not published.
 

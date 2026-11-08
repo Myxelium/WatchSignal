@@ -64,6 +64,8 @@ jobs:
               --notes "Catalog update for Jellyfin 10.11.8 and later, including Jellyfin 12."
           fi
       - name: Publish the catalog manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -72,6 +74,9 @@ jobs:
           git fetch origin main
           git merge --no-edit origin/main
           python3 tools/pack.py --merge-catalog /tmp/catalog-versions.json
+          gh release upload "${{ steps.pack.outputs.tag }}" manifest.json \
+            --repo Myxelium/WatchSignal \
+            --clobber
           git add manifest.json
           if git diff --cached --quiet; then
             exit 0
