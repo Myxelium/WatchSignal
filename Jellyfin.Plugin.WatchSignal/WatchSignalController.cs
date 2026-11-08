@@ -69,7 +69,14 @@ public sealed class WatchSignalController : ControllerBase
             ProviderId(series, "Tvdb"),
             ProviderId(series, "Imdb"),
             ProviderId(series, "TvMaze", "TVmaze", "TVMaze"));
-        return Ok(await _upcoming.GetAsync(show, cancellationToken).ConfigureAwait(false));
+        var release = await _upcoming.GetAsync(show, cancellationToken).ConfigureAwait(false);
+        var format = Plugin.Instance?.Configuration.LineFormat;
+        if (!string.IsNullOrWhiteSpace(format))
+        {
+            release = release with { LineFormat = format.Trim() };
+        }
+
+        return Ok(release);
     }
 
     [HttpPost("Sonarr/Test")]

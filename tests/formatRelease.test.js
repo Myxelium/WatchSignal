@@ -82,4 +82,40 @@ assert.strictEqual(special, "Next special \u201cHoliday\u201d airs Friday, Decem
 
 assert.strictEqual(formatRelease({ found: false }, at("2026-11-08T12:00:00Z"), locale), null);
 
+const custom = formatRelease({
+    found: true,
+    kind: "episode",
+    seasonNumber: 2,
+    episodeNumber: 5,
+    episodeTitle: "The Weight",
+    airAt: "2026-11-12T02:00:00Z",
+    network: "HBO"
+}, at("2026-11-08T12:00:00Z"), locale, "Next episode {code} airs { release date } on {network}.");
+
+assert.strictEqual(
+    custom,
+    "Next episode S02E05 airs Thursday, November 12, 2026 at 2:00 AM on HBO."
+);
+
+const seasonOnly = formatRelease({
+    found: true,
+    kind: "season",
+    seasonNumber: 9,
+    episodeNumber: 1,
+    airAt: "2027-01-07T02:00:00Z",
+    network: "ABC"
+}, at("2026-11-08T12:00:00Z"), locale, "{?kind=season}Season {season} premieres {release date}{/kind}{?kind=episode}Next episode {code} airs {release date}{/kind}{?network} on {network}{/network}.");
+
+assert.strictEqual(seasonOnly, "Season 9 premieres Thursday, January 7, 2027 at 2:00 AM on ABC.");
+
+const noTitle = formatRelease({
+    found: true,
+    kind: "episode",
+    seasonNumber: 1,
+    episodeNumber: 4,
+    airAt: "2026-11-08T23:00:00Z"
+}, at("2026-11-08T12:00:00Z"), locale, "Next episode {code}{?title} “{title}”{/title} airs {release date}.");
+
+assert.strictEqual(noTitle, "Next episode S01E04 airs today at 11:00 PM.");
+
 console.log("formatRelease ok");

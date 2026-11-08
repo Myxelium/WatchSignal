@@ -8,13 +8,22 @@
     <div data-role="content">
         <div class="content-primary">
             <h1>WatchSignal</h1>
-            <p>One line on the series page. It says when the next episode airs. When that episode is the premiere of a season, the line says when the season premieres instead.</p>
+            <p>One line above the description on a series page. Leave the format empty for the built-in sentence, or write your own with the variables below.</p>
             <form id="WatchSignalConfigForm">
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label>
                         <input id="Enabled" type="checkbox" is="emby-checkbox" />
                         <span>Show the line on series pages</span>
                     </label>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="LineFormat">Line format</label>
+                    <textarea id="LineFormat" rows="4" style="width:100%"></textarea>
+                    <div class="fieldDescription">
+                        {release date} is the date and time, including “today at 9:00 PM”. Also {date}, {time}, {season}, {episode}, {code}, {title}, {network}, and {kind}.
+                        {?title}“{title}”{/title} is kept only when a title exists. {?kind=season}Season {season} premieres {release date}{/kind} is kept only for a season premiere.
+                        Example: Next episode {code} airs {release date} on {network}.
+                    </div>
                 </div>
                 <div class="selectContainer">
                     <label class="selectLabel" for="Source">Dates from</label>
@@ -71,6 +80,7 @@
             Dashboard.showLoadingMsg();
             ApiClient.getPluginConfiguration(WatchSignalConfig.pluginUniqueId).then(function (config) {
                 watchSignalValue("Enabled").checked = config.Enabled !== false;
+                watchSignalValue("LineFormat").value = config.LineFormat || "";
                 watchSignalValue("Source").value = config.Source || "Auto";
                 watchSignalValue("SonarrUrl").value = config.SonarrUrl || "";
                 watchSignalValue("SonarrApiKey").value = config.SonarrApiKey || "";
@@ -87,6 +97,7 @@
             Dashboard.showLoadingMsg();
             ApiClient.getPluginConfiguration(WatchSignalConfig.pluginUniqueId).then(function (config) {
                 config.Enabled = watchSignalValue("Enabled").checked;
+                config.LineFormat = watchSignalValue("LineFormat").value.trim();
                 config.Source = watchSignalValue("Source").value;
                 config.SonarrUrl = watchSignalValue("SonarrUrl").value.trim();
                 config.SonarrApiKey = watchSignalValue("SonarrApiKey").value.trim();

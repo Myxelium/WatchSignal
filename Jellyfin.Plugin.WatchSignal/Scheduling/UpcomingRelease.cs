@@ -26,4 +26,7 @@ public sealed record UpcomingRelease
     public string? Network { get; init; }
 
     public string? Source { get; init; }
+
+    /// <summary>Admin line template. Empty means the built-in sentence.</summary>
+    public string? LineFormat { get; init; }
 }

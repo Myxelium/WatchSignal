@@ -16,4 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool SonarrIgnoreCertificateErrors { get; set; }
 
     public int CacheMinutes { get; set; } = 360;
+
+    /// <summary>Empty uses the built-in sentence. Otherwise tokens such as {release date}.</summary>
+    public string LineFormat { get; set; } = string.Empty;
 }

@@ -66,39 +66,161 @@
         return formatLongDate(new Date(year, month - 1, day), locale);
     }
 
-    function formatRelease(data, now, locale) {
-        if (!data || !data.found) {
+    function valueOf(data, camel, pascal) {
+        if (!data) {
+            return undefined;
+        }
+
+        if (data[camel] != null && data[camel] !== "") {
+            return data[camel];
+        }
+
+        return data[pascal];
+    }
+
+    function textValue(value) {
+        return value == null ? "" : String(value);
+    }
+
+    function releaseFields(data, now, locale) {
+        var when = formatWhen(data, now || new Date(), locale) || "";
+        var dateOnly = "";
+        var time = "";
+        if (data.airAt || data.AirAt) {
+            var at = new Date(data.airAt || data.AirAt);
+            if (!Number.isNaN(at.getTime())) {
+                dateOnly = formatLongDate(at, locale);
+                time = formatClock(at);
+            }
+        } else if (when) {
+            dateOnly = when;
+        }
+
+        var season = valueOf(data, "seasonNumber", "SeasonNumber");
+        var episode = valueOf(data, "episodeNumber", "EpisodeNumber");
+        var kind = textValue(valueOf(data, "kind", "Kind"));
+        var code = "";
+        if (season != null && episode != null) {
+            code = "S" + pad(season) + "E" + pad(episode);
+        }
+
+        return {
+            "release date": when,
+            date: dateOnly,
+            time: time,
+            season: season == null ? "" : String(season),
+            episode: episode == null ? "" : String(episode),
+            code: code,
+            title: textValue(valueOf(data, "episodeTitle", "EpisodeTitle")),
+            network: textValue(valueOf(data, "network", "Network")),
+            kind: kind,
+            source: textValue(valueOf(data, "source", "Source"))
+        };
+    }
+
+    function applyTemplate(template, fields) {
+        var output = "";
+        var stack = [true];
+        var index = 0;
+        while (index < template.length) {
+            var open = template.indexOf("{", index);
+            if (open < 0) {
+                if (stack[stack.length - 1]) {
+                    output += template.slice(index);
+                }
+                break;
+            }
+
+            if (stack[stack.length - 1]) {
+                output += template.slice(index, open);
+            }
+
+            var close = template.indexOf("}", open + 1);
+            if (close < 0) {
+                if (stack[stack.length - 1]) {
+                    output += template.slice(open);
+                }
+                break;
+            }
+
+            var tag = template.slice(open + 1, close).trim().toLowerCase();
+            index = close + 1;
+            if (tag.charAt(0) === "/") {
+                if (stack.length > 1) {
+                    stack.pop();
+                }
+                continue;
+            }
+
+            if (tag.charAt(0) === "?") {
+                var expression = tag.slice(1).trim();
+                var equals = expression.indexOf("=");
+                var key = (equals === -1 ? expression : expression.slice(0, equals)).trim();
+                var expected = equals === -1 ? null : expression.slice(equals + 1).trim();
+                var field = fields[key] || "";
+                var matches = expected === null ? field.length > 0 : field === expected;
+                stack.push(stack[stack.length - 1] && matches);
+                continue;
+            }
+
+            if (stack[stack.length - 1]) {
+                output += fields[tag] || "";
+            }
+        }
+
+        return output.replace(/[ \t]{2,}/g, " ").replace(/\s+([.,])/g, "$1").trim();
+    }
+
+    function formatRelease(data, now, locale, template) {
+        if (!data || valueOf(data, "found", "Found") === false || valueOf(data, "found", "Found") == null) {
             return null;
         }
 
-        var when = formatWhen(data, now || new Date(), locale);
-        if (!when) {
+        var normalized = {
+            found: true,
+            kind: valueOf(data, "kind", "Kind"),
+            seasonNumber: valueOf(data, "seasonNumber", "SeasonNumber"),
+            episodeNumber: valueOf(data, "episodeNumber", "EpisodeNumber"),
+            episodeTitle: valueOf(data, "episodeTitle", "EpisodeTitle"),
+            airAt: valueOf(data, "airAt", "AirAt"),
+            airDate: valueOf(data, "airDate", "AirDate"),
+            network: valueOf(data, "network", "Network")
+        };
+        var fields = releaseFields(normalized, now, locale);
+        if (!fields["release date"]) {
             return null;
         }
 
-        var network = data.network ? " on " + data.network : "";
-        if (data.kind === "season" && data.seasonNumber) {
-            return "Season " + data.seasonNumber + " premieres " + when + network + ".";
+        if (template && String(template).trim()) {
+            var custom = applyTemplate(String(template), fields);
+            return custom || null;
         }
 
-        var label = data.kind === "special" ? "Next special" : "Next episode";
+        var network = fields.network ? " on " + fields.network : "";
+        if (normalized.kind === "season" && normalized.seasonNumber) {
+            return "Season " + normalized.seasonNumber + " premieres " + fields["release date"] + network + ".";
+        }
+
+        var label = normalized.kind === "special" ? "Next special" : "Next episode";
         var bits = [];
-        if (data.kind !== "special" && data.seasonNumber != null && data.episodeNumber != null) {
-            bits.push("S" + pad(data.seasonNumber) + "E" + pad(data.episodeNumber));
+        if (normalized.kind !== "special" && fields.code) {
+            bits.push(fields.code);
         }
 
-        if (data.episodeTitle) {
-            bits.push("\u201c" + data.episodeTitle + "\u201d");
+        if (fields.title) {
+            bits.push("\u201c" + fields.title + "\u201d");
         }
 
         var lead = bits.length ? label + " " + bits.join(" ") : label;
-        return lead + " airs " + when + network + ".";
+        return lead + " airs " + fields["release date"] + network + ".";
     }
 
-    function boot() {
+        function boot() {
         var shown = null;
         var requestSerial = 0;
         var timer = 0;
+        var fetchedId = null;
+        var pendingId = null;
 
         function ensureStyle() {
             if (document.getElementById("watchsignal-style")) {
@@ -107,7 +229,7 @@
 
             var style = document.createElement("style");
             style.id = "watchsignal-style";
-            style.textContent = ".watchsignal-release{margin:0.35em 0 0.8em;font-size:1.02em;font-weight:600;line-height:1.4;}";
+            style.textContent = ".watchsignal-release{display:block;margin:0 0 0.85em;font-size:1.05em;font-weight:600;line-height:1.4;color:inherit;}";
             document.head.appendChild(style);
         }
 
@@ -127,18 +249,32 @@
         }
 
         function place(page, element) {
-            var anchor = page.querySelector(".itemMiscInfo-primary") || page.querySelector(".itemName");
-            var parent = anchor ? anchor.parentNode : (page.querySelector(".detailPagePrimaryContent") || page);
-            if (!parent) {
+            var content = page.querySelector(".detailSectionContent");
+            var overview = content ? content.querySelector(".overview") : page.querySelector(".overview");
+            if (overview && overview.parentNode) {
+                if (element.parentNode !== overview.parentNode || element.nextSibling !== overview) {
+                    overview.parentNode.insertBefore(element, overview);
+                }
                 return;
             }
 
-            if (anchor) {
-                if (element.previousSibling !== anchor) {
-                    parent.insertBefore(element, anchor.nextSibling);
+            if (content) {
+                if (element.parentNode !== content) {
+                    content.insertBefore(element, content.firstChild);
                 }
-            } else if (element.parentNode !== parent) {
-                parent.insertBefore(element, parent.firstChild);
+                return;
+            }
+
+            var ribbon = page.querySelector(".detailRibbon");
+            if (ribbon && ribbon.parentNode) {
+                if (element.parentNode !== ribbon.parentNode || element.previousSibling !== ribbon) {
+                    ribbon.parentNode.insertBefore(element, ribbon.nextSibling);
+                }
+                return;
+            }
+
+            if (element.parentNode !== page) {
+                page.insertBefore(element, page.firstChild);
             }
         }
 
@@ -175,15 +311,19 @@
         function refresh() {
             var id = detailsItemId();
             var page = findPage();
-            if (!id || !page) {
+            if (!id) {
+                fetchedId = null;
+                pendingId = null;
                 shown = null;
                 paint();
                 return;
             }
 
-            if (shown && shown.id !== id) {
-                shown = null;
-                paint();
+            if (!page || fetchedId === id || pendingId === id) {
+                if (page) {
+                    paint();
+                }
+                return;
             }
 
             var api = window.ApiClient;
@@ -193,6 +333,7 @@
                 return;
             }
 
+            pendingId = id;
             var serial = ++requestSerial;
             fetch(api.getUrl("WatchSignal/Series/" + encodeURIComponent(id) + "/Upcoming"), {
                 headers: { "X-Emby-Token": token },
@@ -207,39 +348,69 @@
                     return;
                 }
 
-                var text = formatRelease(data, new Date());
-                shown = text ? { id: id, text: text, source: data && data.source } : null;
+                pendingId = null;
+                fetchedId = id;
+                var template = data && (data.lineFormat || data.LineFormat);
+                var text = formatRelease(data, new Date(), undefined, template);
+                var source = data && (data.source || data.Source);
+                shown = { id: id, text: text || "", source: source || "" };
                 paint();
             }).catch(function () {
                 if (serial !== requestSerial) {
                     return;
                 }
-                shown = null;
+                pendingId = null;
+                fetchedId = id;
+                shown = { id: id, text: "", source: "" };
                 paint();
             });
         }
 
-        function schedule() {
+        function schedule(force) {
+            if (force) {
+                fetchedId = null;
+                pendingId = null;
+            }
+
             window.clearTimeout(timer);
             timer = window.setTimeout(refresh, 60);
         }
 
-        document.addEventListener("viewshow", schedule);
-        window.addEventListener("hashchange", schedule);
+        document.addEventListener("viewshow", function () {
+            schedule(true);
+        });
+        window.addEventListener("hashchange", function () {
+            schedule(true);
+        });
         if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", schedule);
+            document.addEventListener("DOMContentLoaded", function () {
+                schedule(false);
+            });
         } else {
-            schedule();
+            schedule(false);
         }
 
         var paintTimer = 0;
         var observer = new MutationObserver(function () {
-            if (!detailsItemId()) {
+            var id = detailsItemId();
+            var page = id && findPage();
+            if (!page) {
                 return;
             }
 
             window.clearTimeout(paintTimer);
-            paintTimer = window.setTimeout(paint, 40);
+            paintTimer = window.setTimeout(function () {
+                if (fetchedId !== id && pendingId !== id) {
+                    schedule(false);
+                    return;
+                }
+
+                var overview = page.querySelector(".detailSectionContent .overview") || page.querySelector(".overview");
+                var element = page.querySelector(".watchsignal-release");
+                if (!element || (overview && element.nextSibling !== overview)) {
+                    paint();
+                }
+            }, 40);
         });
         var observeRoot = document.body || document.documentElement;
         if (observeRoot) {
@@ -247,7 +418,7 @@
         }
     }
 
-    root.WatchSignalFormat = { formatRelease: formatRelease };
+    root.WatchSignalFormat = { formatRelease: formatRelease, applyTemplate: applyTemplate };
     if (typeof document !== "undefined") {
         boot();
     }
