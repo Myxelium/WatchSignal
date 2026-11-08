@@ -196,23 +196,109 @@
             return custom || null;
         }
 
-        var network = fields.network ? " on " + fields.network : "";
-        if (normalized.kind === "season" && normalized.seasonNumber) {
-            return "Season " + normalized.seasonNumber + " premieres " + fields["release date"] + network + ".";
+        return countdownText(normalized, now || new Date());
+    }
+
+    function plural(count, one, many) {
+        return count + " " + (count === 1 ? one : many);
+    }
+
+    function countdownTarget(kind) {
+        if (kind === "season") {
+            return "next season";
         }
 
-        var label = normalized.kind === "special" ? "Next special" : "Next episode";
-        var bits = [];
-        if (normalized.kind !== "special" && fields.code) {
-            bits.push(fields.code);
+        if (kind === "special") {
+            return "next special";
         }
 
-        if (fields.title) {
-            bits.push("\u201c" + fields.title + "\u201d");
+        return "next episode";
+    }
+
+    function localAirDate(airDate) {
+        var parts = String(airDate).split("-");
+        if (parts.length !== 3) {
+            return null;
         }
 
-        var lead = bits.length ? label + " " + bits.join(" ") : label;
-        return lead + " airs " + fields["release date"] + network + ".";
+        var year = Number(parts[0]);
+        var month = Number(parts[1]);
+        var day = Number(parts[2]);
+        if (!year || !month || !day) {
+            return null;
+        }
+
+        return new Date(year, month - 1, day);
+    }
+
+    function countdownText(data, now) {
+        var target = countdownTarget(data.kind);
+        if (data.airAt) {
+            var at = new Date(data.airAt);
+            if (Number.isNaN(at.getTime())) {
+                return null;
+            }
+
+            var remaining = at.getTime() - now.getTime();
+            if (remaining < 0) {
+                remaining = 0;
+            }
+
+            var days = Math.floor(remaining / 86400000);
+            var hours = Math.floor((remaining % 86400000) / 3600000);
+            var minutes = Math.floor((remaining % 3600000) / 60000);
+            var parts = [];
+            if (days > 0) {
+                parts.push(plural(days, "day", "days"));
+            }
+
+            if (hours > 0) {
+                parts.push(plural(hours, "hour", "hours"));
+            }
+
+            if (parts.length === 0) {
+                parts.push(minutes > 0 ? plural(minutes, "minute", "minutes") : "less than a minute");
+            }
+
+            return parts.join(" and ") + " to " + target;
+        }
+
+        var day = data.airDate ? localAirDate(data.airDate) : null;
+        if (!day) {
+            return null;
+        }
+
+        var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var daysLeft = Math.round((day.getTime() - startToday.getTime()) / 86400000);
+        if (daysLeft < 0) {
+            daysLeft = 0;
+        }
+
+        if (daysLeft === 0) {
+            return "less than a day to " + target;
+        }
+
+        return plural(daysLeft, "day", "days") + " to " + target;
+    }
+
+    function formatHover(data, locale) {
+        if (!data || valueOf(data, "found", "Found") === false) {
+            return "";
+        }
+
+        var airAt = valueOf(data, "airAt", "AirAt");
+        if (airAt) {
+            var at = new Date(airAt);
+            if (Number.isNaN(at.getTime())) {
+                return "";
+            }
+
+            return formatLongDate(at, locale) + " at " + formatClock(at);
+        }
+
+        var airDate = valueOf(data, "airDate", "AirDate");
+        var day = airDate ? localAirDate(airDate) : null;
+        return day ? formatLongDate(day, locale) : "";
     }
 
         function boot() {
@@ -229,7 +315,7 @@
 
             var style = document.createElement("style");
             style.id = "watchsignal-style";
-            style.textContent = ".detailRibbon:has(.watchsignal-release),.layout-desktop .detailRibbon:has(.watchsignal-release){flex-wrap:wrap;height:auto;min-height:7.2em;}.watchsignal-release{order:1;flex:1 0 100%;display:flex;align-items:center;gap:0.4em;margin:0.15em 0 0.35em;font-size:1.02em;font-weight:600;line-height:1.4;color:inherit;}.watchsignal-release .watchsignal-icon{flex:0 0 auto;font-size:18px;width:18px;height:18px;line-height:18px;}";
+            style.textContent = ".layout-desktop .detailRibbon:has(.watchsignal-release){flex-wrap:wrap;height:auto;min-height:7.2em;align-content:flex-start;}.watchsignal-release{order:1;flex:1 0 100%;display:flex;align-items:center;gap:0.4em;margin:0.2em 0 0;font-size:1.02em;font-weight:600;line-height:1.4;color:inherit;cursor:help;}.watchsignal-release .watchsignal-icon{flex:0 0 auto;font-size:18px;width:18px;height:18px;line-height:18px;}";
             document.head.appendChild(style);
         }
 
@@ -281,6 +367,35 @@
             return element;
         }
 
+        function fitHeader(page) {
+            var ribbon = page.querySelector(".detailRibbon");
+            var backdrop = page.querySelector("#itemBackdrop") || page.querySelector(".itemBackdrop");
+            if (!ribbon || !backdrop) {
+                return;
+            }
+
+            var desktop = document.documentElement.classList.contains("layout-desktop");
+            var release = page.querySelector(".watchsignal-release");
+            if (!desktop || !release) {
+                ribbon.style.marginTop = "";
+                backdrop.style.height = "";
+                return;
+            }
+
+            var em = parseFloat(window.getComputedStyle(ribbon).fontSize) || 16;
+            var base = 7.2 * em;
+            var extra = Math.ceil(ribbon.getBoundingClientRect().height - base);
+            if (extra < 1) {
+                ribbon.style.marginTop = "";
+                backdrop.style.height = "";
+                return;
+            }
+
+            var backdropHeight = window.matchMedia("(max-height: 31.25em)").matches ? "52vh" : "40vh";
+            backdrop.style.height = "calc(" + backdropHeight + " + " + extra + "px)";
+            ribbon.style.marginTop = "-" + (base + extra) + "px";
+        }
+
         function paint() {
             var id = detailsItemId();
             var page = findPage();
@@ -288,6 +403,9 @@
                 var stale = page && page.querySelector(".watchsignal-release");
                 if (stale && (!id || stale.dataset.itemId !== id)) {
                     stale.remove();
+                }
+                if (page) {
+                    fitHeader(page);
                 }
                 return;
             }
@@ -298,8 +416,9 @@
             if (label.textContent !== shown.text) {
                 label.textContent = shown.text;
             }
-            element.title = shown.source ? "From " + shown.source : "";
+            element.title = shown.hover || "";
             place(page, element);
+            fitHeader(page);
         }
 
         function tokenOf(api) {
@@ -352,10 +471,10 @@
 
                 pendingId = null;
                 fetchedId = id;
+                var moment = new Date();
                 var template = data && (data.lineFormat || data.LineFormat);
-                var text = formatRelease(data, new Date(), undefined, template);
-                var source = data && (data.source || data.Source);
-                shown = { id: id, text: text || "", source: source || "" };
+                var text = formatRelease(data, moment, undefined, template);
+                shown = { id: id, text: text || "", hover: formatHover(data) || "" };
                 paint();
             }).catch(function () {
                 if (serial !== requestSerial) {
@@ -363,7 +482,7 @@
                 }
                 pendingId = null;
                 fetchedId = id;
-                shown = { id: id, text: "", source: "" };
+                shown = { id: id, text: "", hover: "" };
                 paint();
             });
         }
@@ -378,6 +497,12 @@
             timer = window.setTimeout(refresh, 60);
         }
 
+        window.addEventListener("resize", function () {
+            var page = findPage();
+            if (page && page.querySelector(".watchsignal-release")) {
+                fitHeader(page);
+            }
+        });
         document.addEventListener("viewshow", function () {
             schedule(true);
         });
@@ -420,7 +545,7 @@
         }
     }
 
-    root.WatchSignalFormat = { formatRelease: formatRelease, applyTemplate: applyTemplate };
+    root.WatchSignalFormat = { formatRelease: formatRelease, formatHover: formatHover, applyTemplate: applyTemplate };
     if (typeof document !== "undefined") {
         boot();
     }

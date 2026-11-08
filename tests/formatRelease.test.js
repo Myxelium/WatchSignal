@@ -3,7 +3,7 @@ const path = require("path");
 
 require(path.join(__dirname, "..", "Jellyfin.Plugin.WatchSignal", "Web", "watchsignal.js"));
 
-const { formatRelease } = globalThis.WatchSignalFormat;
+const { formatRelease, formatHover } = globalThis.WatchSignalFormat;
 const locale = "en-US";
 
 function at(iso) {
@@ -20,9 +20,13 @@ const season = formatRelease({
     network: "ABC"
 }, at("2026-11-08T12:00:00Z"), locale);
 
+assert.strictEqual(season, "59 days and 14 hours to next season");
 assert.strictEqual(
-    season,
-    "Season 9 premieres Thursday, January 7, 2027 at 2:00 AM on ABC."
+    formatHover({
+        found: true,
+        airAt: "2027-01-07T02:00:00Z"
+    }, locale),
+    "Thursday, January 7, 2027 at 2:00 AM"
 );
 
 const episode = formatRelease({
@@ -35,9 +39,13 @@ const episode = formatRelease({
     network: "HBO"
 }, at("2026-11-08T12:00:00Z"), locale);
 
+assert.strictEqual(episode, "3 days and 14 hours to next episode");
 assert.strictEqual(
-    episode,
-    "Next episode S02E05 \u201cThe Weight\u201d airs Thursday, November 12, 2026 at 2:00 AM on HBO."
+    formatHover({
+        found: true,
+        airAt: "2026-11-12T02:00:00Z"
+    }, locale),
+    "Thursday, November 12, 2026 at 2:00 AM"
 );
 
 const today = formatRelease({
@@ -49,7 +57,7 @@ const today = formatRelease({
     airAt: "2026-11-08T23:00:00Z"
 }, at("2026-11-08T12:00:00Z"), locale);
 
-assert.strictEqual(today, "Next episode S01E04 \u201cTonight\u201d airs today at 11:00 PM.");
+assert.strictEqual(today, "11 hours to next episode");
 
 const tomorrow = formatRelease({
     found: true,
@@ -58,7 +66,7 @@ const tomorrow = formatRelease({
     airAt: "2026-11-09T18:30:00Z"
 }, at("2026-11-08T12:00:00Z"), locale);
 
-assert.strictEqual(tomorrow, "Season 3 premieres tomorrow at 6:30 PM.");
+assert.strictEqual(tomorrow, "1 day and 6 hours to next season");
 
 const dateOnly = formatRelease({
     found: true,
@@ -67,7 +75,11 @@ const dateOnly = formatRelease({
     airDate: "2027-03-03"
 }, at("2026-11-08T12:00:00Z"), locale);
 
-assert.strictEqual(dateOnly, "Season 3 premieres Wednesday, March 3, 2027.");
+assert.strictEqual(dateOnly, "115 days to next season");
+assert.strictEqual(
+    formatHover({ found: true, airDate: "2027-03-03" }, locale),
+    "Wednesday, March 3, 2027"
+);
 
 const special = formatRelease({
     found: true,
@@ -78,7 +90,7 @@ const special = formatRelease({
     airAt: "2026-12-25T02:00:00Z"
 }, at("2026-11-08T12:00:00Z"), locale);
 
-assert.strictEqual(special, "Next special \u201cHoliday\u201d airs Friday, December 25, 2026 at 2:00 AM.");
+assert.strictEqual(special, "46 days and 14 hours to next special");
 
 assert.strictEqual(formatRelease({ found: false }, at("2026-11-08T12:00:00Z"), locale), null);
 

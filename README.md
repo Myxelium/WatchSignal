@@ -2,8 +2,8 @@
 
 WatchSignal adds one line to a series page in the Jellyfin web client.
 
-- Next episode: `Next episode S02E05 “The Weight” airs Thursday, November 12, 2026 at 9:00 PM on HBO.`
-- New season: `Season 9 premieres Thursday, January 7, 2027 at 9:00 PM on ABC.`
+- Next episode: `1 day and 4 hours to next episode`. Hover shows the date and time.
+- New season: `12 days and 6 hours to next season`. Hover shows the premiere date and time.
 
 The line uses your Sonarr library when the show is in Sonarr. Otherwise it uses TVMaze, which needs no API key. Times are shown in the viewer's timezone.
 

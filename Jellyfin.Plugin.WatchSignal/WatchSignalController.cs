@@ -44,7 +44,7 @@ public sealed class WatchSignalController : ControllerBase
             return NotFound();
         }
 
-        Response.Headers.CacheControl = "public, max-age=86400";
+        Response.Headers.CacheControl = "no-cache";
         return File(stream, "application/javascript; charset=utf-8");
     }
 
