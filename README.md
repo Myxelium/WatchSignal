@@ -13,7 +13,7 @@ In Jellyfin, open **Dashboard → Plugins → Repositories** and add:
 
 `https://github.com/Myxelium/WatchSignal/releases/latest/download/manifest.json`
 
-Then open **Catalog**, install **WatchSignal**, and restart Jellyfin. Refresh the web app and open a series. The line sits above the description. If the repository URL is still the `raw.githubusercontent.com` copy, replace it with the link above. GitHub caches that raw file; the latest-release file updates with each release.
+Then open **Catalog**, install **WatchSignal**, and restart Jellyfin. Refresh the web app and open a series. The line sits under the title and year. If the repository URL is still the `raw.githubusercontent.com` copy, replace it with the link above. GitHub caches that raw file; the latest-release file updates with each release.
 
 Jellyfin 10.11.8 and every later 10.11 release install the .NET 9 build. Jellyfin 12 and later install the .NET 10 build. The catalog lists the one that matches the server.
 

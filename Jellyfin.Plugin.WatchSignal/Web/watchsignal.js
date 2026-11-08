@@ -229,7 +229,7 @@
 
             var style = document.createElement("style");
             style.id = "watchsignal-style";
-            style.textContent = ".watchsignal-release{display:block;margin:0 0 0.85em;font-size:1.05em;font-weight:600;line-height:1.4;color:inherit;}";
+            style.textContent = ".detailRibbon:has(.watchsignal-release),.layout-desktop .detailRibbon:has(.watchsignal-release){flex-wrap:wrap;height:auto;min-height:7.2em;}.watchsignal-release{order:1;flex:1 0 100%;display:flex;align-items:center;gap:0.4em;margin:0.15em 0 0.35em;font-size:1.02em;font-weight:600;line-height:1.4;color:inherit;}.watchsignal-release .watchsignal-icon{flex:0 0 auto;font-size:18px;width:18px;height:18px;line-height:18px;}";
             document.head.appendChild(style);
         }
 
@@ -249,26 +249,10 @@
         }
 
         function place(page, element) {
-            var content = page.querySelector(".detailSectionContent");
-            var overview = content ? content.querySelector(".overview") : page.querySelector(".overview");
-            if (overview && overview.parentNode) {
-                if (element.parentNode !== overview.parentNode || element.nextSibling !== overview) {
-                    overview.parentNode.insertBefore(element, overview);
-                }
-                return;
-            }
-
-            if (content) {
-                if (element.parentNode !== content) {
-                    content.insertBefore(element, content.firstChild);
-                }
-                return;
-            }
-
-            var ribbon = page.querySelector(".detailRibbon");
-            if (ribbon && ribbon.parentNode) {
-                if (element.parentNode !== ribbon.parentNode || element.previousSibling !== ribbon) {
-                    ribbon.parentNode.insertBefore(element, ribbon.nextSibling);
+            var info = page.querySelector(".detailRibbon .infoWrapper") || page.querySelector(".infoWrapper");
+            if (info && info.parentNode) {
+                if (element.parentNode !== info.parentNode || element.previousElementSibling !== info) {
+                    info.parentNode.insertBefore(element, info.nextSibling);
                 }
                 return;
             }
@@ -276,6 +260,25 @@
             if (element.parentNode !== page) {
                 page.insertBefore(element, page.firstChild);
             }
+        }
+
+        function releaseElement(page, id) {
+            var element = page.querySelector(".watchsignal-release");
+            if (!element) {
+                element = document.createElement("div");
+                element.className = "watchsignal-release";
+                var icon = document.createElement("span");
+                icon.className = "material-icons watchsignal-icon";
+                icon.setAttribute("aria-hidden", "true");
+                icon.textContent = "schedule";
+                var label = document.createElement("span");
+                label.className = "watchsignal-text";
+                element.appendChild(icon);
+                element.appendChild(label);
+            }
+
+            element.dataset.itemId = id;
+            return element;
         }
 
         function paint() {
@@ -290,11 +293,10 @@
             }
 
             ensureStyle();
-            var element = page.querySelector(".watchsignal-release") || document.createElement("div");
-            element.className = "watchsignal-release";
-            element.dataset.itemId = id;
-            if (element.textContent !== shown.text) {
-                element.textContent = shown.text;
+            var element = releaseElement(page, id);
+            var label = element.querySelector(".watchsignal-text");
+            if (label.textContent !== shown.text) {
+                label.textContent = shown.text;
             }
             element.title = shown.source ? "From " + shown.source : "";
             place(page, element);
@@ -405,9 +407,9 @@
                     return;
                 }
 
-                var overview = page.querySelector(".detailSectionContent .overview") || page.querySelector(".overview");
+                var info = page.querySelector(".detailRibbon .infoWrapper") || page.querySelector(".infoWrapper");
                 var element = page.querySelector(".watchsignal-release");
-                if (!element || (overview && element.nextSibling !== overview)) {
+                if (!element || (info && element.previousElementSibling !== info)) {
                     paint();
                 }
             }, 40);
